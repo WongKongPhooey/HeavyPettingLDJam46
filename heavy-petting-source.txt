@@ -1,0 +1,739 @@
+t=0
+tcycle=120
+d=1
+day=1
+gameover=false
+
+px=16
+py=72
+pv=1
+pspr=0
+pflip=false
+pframe=0
+canmove=true
+offground=false
+bitten=false
+bitetime=0
+
+petframe=0
+petc=0
+
+catx=64
+caty=88
+catv=1
+catspr=64
+catflip=false
+bigcat=false
+size="cub"
+
+catframe=0
+catmoving=false
+cataction=false
+cateating=false
+
+cubspr=64
+tigerspr=96
+
+caneat=true
+foodspr=192
+
+canpoop=true
+trayspr=196
+
+happy=6
+food=4
+clean=5
+sleep=7
+health=10
+
+floor=88
+
+camx=0
+camy=0
+
+wait=0
+nextaction=""
+
+music(0)
+
+function _update()
+  
+  t+=1
+  //set time cycle
+  if t >= tcycle then
+   t=0
+  end
+   
+  if gameover == false then
+   d+=1
+  
+   //set day cycle
+   if d >= 200 then
+    d=0
+    day+=1
+   end  
+  end
+
+  if t == flr(tcycle/4) then
+   if food > 0 then
+    food-=1
+   end
+   if food <= 0 then
+    happy -=1
+   end
+  end
+  
+  if t == tcycle/2 then
+   if sleep > 0 then
+    sleep-=1
+   end
+  end
+  
+  if t == flr(tcycle/4)*3 then
+   if clean > 0 then
+    clean-=1
+   end
+   if canpoop == false 
+   and clean <= 0 then
+    happy-=1
+   end
+  end
+  
+  if camx < 0 then
+   camx+=1
+  end
+  if camy < 0 then
+   camy+=1
+  end
+  camera(camx,camy)
+  
+  //end game
+  if happy <= 0 then
+   happy=0
+   target=px-16
+   canmove=false
+   nextaction="it's angry! no escape!"
+   caneat=true
+   canpoop=true
+   sleep=10
+   food=7
+   clean=10
+  end
+  if health <= 0 then
+   health=0
+   gameover=true
+   canmove=false
+  end
+  
+  //kill the player
+  if gameover == true then
+   nextaction="game over! you lasted "..day.." days."
+   catpooping=false
+   target=px-16
+   cateating=true
+   catsleeping=false
+   canmove=false
+   pspr=14
+   py=floor-16
+   caty=88
+  end
+  
+  if happy >= 10 then
+   if bigcat == false then
+    music(1)
+    happy=5
+    bigcat=true
+    catspr=tigerspr
+    catv=2
+    pv=2
+    tcycle=60
+    size="adult"
+   else
+    happy=7
+    tcycle-=10
+    size="alpha"
+   end
+  end
+    
+  moving=false
+   
+  //actions
+  if btn(4) then
+   if px <= 12 and px >= -4 then
+    caneat=true
+    pspr=12
+    foodspr=192
+    nextaction=""    
+   end
+   if px <= 116 and px >= 96 
+   and canpoop == false then
+    canpoop=true
+    pspr=12
+    trayspr=196
+    nextaction=""    
+   end
+   if bigcat == true then
+    //tiger petting
+    if catflip == true
+    and pflip == false then
+     if catx - px <= 8 and 
+      catx - px >= -8 then
+      //petting
+      pspr=8
+      petting=true
+      canmove=false
+     end
+    end
+    if catflip == false
+    and pflip == true then
+     if catx - px >= -25 and 
+      catx - px <= -7 then
+      //petting
+      pspr=8
+      petting=true
+      canmove=false
+     end
+    end
+   else
+    //cub petting
+    if catflip == true then
+     //from the left side
+     if catx - px <= -9 and 
+      catx - px >= -3 then
+      pspr=8
+      petting=true
+      canmove=false
+     end
+    else
+     if pflip == true then
+      if catx - px <= -4 and 
+       catx - px >= -8 then
+       //petting
+       pspr=8
+       petting=true
+       canmove=false
+      end
+     else
+      if catx - px <= 15 
+      and catx - px >= 11 then
+       pspr=8
+       petting=true
+       canmove=false
+      end
+     end
+    end
+   end
+  end
+  
+  //biting
+  if bigcat == true 
+  and catmoving == true then
+   //if facing right
+   if catflip == true then
+    if px-catx > 16
+    and px-catx < 32
+    and py > 60 then
+     if bitten==false then
+      sfx(20)
+      bitten=true
+      bitetime=30
+      health-=2
+      if canmove==false then
+       health=0
+      end
+     end
+    end
+   else
+    //if facing left
+    if px-catx > -12
+    and px-catx < -4
+    and py > 60 then
+     if bitten==false then
+      sfx(20)
+      bitten=true
+      bitetime=30
+      health-=2
+      if canmove==false then
+       health=0
+      end
+     end
+    end
+   end
+  end
+  if bitetime > 0 then
+   bitetime-=1
+  end
+  if bitetime <= 0 then
+   bitten=false
+   bitetime=0
+  end
+  
+  if canmove == true then
+   //player movement
+   if btnp(2) then
+    if py==floor-16 or jumping == false then
+     jumpv=5
+     py-=1
+     jumping=true
+    end
+   end
+   if jumping == true then
+    py-=jumpv
+    jumpv-=1
+   end
+   //if landed on the ground
+   if py >= (floor-16) 
+   and jumping == true then
+    py=floor-16
+    jumpv=0
+    jumping=false
+    offground=false
+    //camshake(0,1)
+   end
+   //if on something
+   if py <= 62 then
+    //if on sofa
+    if px > 16 and px < 44
+    and py <= 62 then
+     //up on the sofa
+     if jumping == true and offground==false then
+      jumpv=0
+      jumping=false
+      py=62
+      offground=true
+     end
+    else
+     if px > 55 and px < 72
+     and py <= 62 then
+      //up on the sofa
+      if jumping == true and offground==false then
+       jumpv=0
+       jumping=false
+       py=62
+       offground=true
+      end
+     else
+      jumping=true
+     end
+    end
+   end
+   
+   if btn(0) then
+    if px > -3 then
+     pflip=true
+     px-=pv
+     pframe+=1
+     moving=true
+    end
+   end
+   if btn(1) then
+    if px < 116 then
+     pflip=false
+     px+=pv
+     pframe+=1
+     moving=true
+    end
+   end
+   if moving==false then
+    pspr=0
+    pframe=0
+   else
+    if pframe%4 == 0 then
+     pspr+=2
+     if pspr >= 8 then
+      pspr=0
+     end
+    end
+   end
+  //end of player movement
+  else
+   //static actions
+   
+   //petting logic
+   if petting == true then
+    petframe+=1
+    if petframe%3 == 0 then
+     pspr+=2
+     if pspr >= 12 then
+      pspr=8
+      petc+=1
+     end
+    end
+    if catmoving == true then
+     petting=false
+     canmove=true
+     petc=0
+    end
+    if petc >= 3 then
+     //stop petting
+     petting=false
+     canmove=true
+     petc=0
+     happy+=1
+    end
+   end
+  end
+   
+  //cat logic
+  if cataction == false then
+   if food <= 2 then
+    //hungry cat
+    catmoving = true
+    cataction = true
+    actiontype = "food"
+    if bigcat == true then
+     catspr = 96
+    else
+     catspr = 68
+    end
+    //target food bowl
+    target = 6 
+   end
+   
+   if sleep <= 3 then
+    //sleepy cat
+    catmoving = true
+    cataction = true
+    actiontype="sleep"
+    if bigcat == true then
+     catspr = 96
+     //target sofa
+     target = 24
+    else
+     catspr = 68
+     //target sofa
+     target = 29
+    end
+   end
+   
+   if food == 10 and cateating == false then
+    //poopy cat
+    catmoving = true
+    cataction = true
+    actiontype = "poop"
+    if bigcat == true then
+     catspr = 96
+     //target litter tray
+     target = 103
+    else
+     catspr = 68
+     //target litter tray
+    target = 109
+    end
+   end
+  end
+   
+  //cat movement
+  if catmoving == true then
+   if catx > target+1 then
+    catx-=catv
+    catframe+=1
+    catflip=false
+   end
+   if catx < target-1 then
+    catx+=catv
+    catframe+=1
+    catflip=true
+   end
+   if catx >= target-2
+   and catx <= target+2 
+   and catmoving == true then
+    catmoving=false
+    catframe=0
+    if actiontype == "food" then
+     if caneat == true then
+      cateating=true
+      camshake(1,2)
+      if bigcat == true then
+      catspr=104
+      else
+       catspr=74
+      end
+      if food < 10 then
+       food+=1
+      end
+     else
+      //if theres no food
+      actiontype=""
+      cataction=false
+      if bigcat == true then
+       catspr=96
+      else
+       catspr=64
+      end
+      nextaction="refill the food! press z"
+     end
+    end
+    if actiontype == "sleep" then
+     catsleeping=true
+     camshake(0,1)
+    end
+    if actiontype == "poop" then
+     catpooping=true
+     camshake(-1,2)
+    end
+   end
+   
+   if catframe%3 == 0 then
+    if bigcat == true then
+     if catspr < 100 then
+      catspr+=4
+     else
+      catspr = 96
+     end
+    else
+     if catspr < 70 then
+      catspr+=2
+     else
+      catspr = 68
+     end
+    end
+   end
+  end
+  if cateating == true then
+   catframe+=1
+   if catframe%3 == 0 then
+    if bigcat == true then
+     if catspr < 108 then
+      catspr+=4
+     else
+      catspr = 104
+      if gameover == false then
+       food+=1
+      end
+     end
+    else
+     if catspr < 74 then
+      catspr+=2
+     else
+      catspr = 72
+      food+=1
+     end
+    end
+   end
+   if food >= 10 then
+    food = 10
+    if gameover == false then
+     cateating=false
+     cataction=false
+     caneat=false
+    end
+    if bigcat == true then
+     catspr=96
+    else
+     catspr=64
+    end
+    foodspr=194
+    happy+=1
+    nextaction="refill the food! press z"
+   end
+  end
+  if catsleeping == true then
+   catframe+=1
+   if bigcat == true then
+    catspr=76
+   else
+    catspr=66
+   end
+   caty=83
+   if catframe%10 == 0 then
+    sleep+=1
+   end
+   if sleep > 10 then
+    sleep = 10
+    catsleeping=false
+    cataction=false
+    if bigcat == true then
+     catspr=96
+    else
+     catspr=64
+    end
+    caty=88
+    happy+=1
+   end
+  end
+  
+  //cat pooping
+  if catpooping == true then
+   catframe+=1
+   if bigcat == true then
+    catspr=76
+   else
+    catspr=64
+   end
+   caty=87
+   if catframe%5 == 0 then
+    clean+=1
+   end
+   if clean > 10 then
+    clean = 10
+    catpooping=false
+    cataction=false
+    canpoop=false
+    if bigcat == true then
+     catspr=96
+     trayspr=200
+    else
+     catspr=64
+     trayspr=198
+    end
+    nextaction="empty the litter! press z"
+    caty=88
+    happy+=1
+   end
+  end
+  if btn(4) then
+   if petting == false then
+    pspr=12
+   end
+  end
+  
+  //kill the player
+  if gameover == true then
+   target=px
+   catpooping=false
+   cateating=false
+   catsleeping=false
+  end
+end
+
+function camshake(x,y)
+ if bigcat == true then
+  camx=-x
+  camy=-y
+  camera(camx,camy)
+ end
+end
+
+function _draw()
+  cls()
+  palt(0,false)
+  palt(11,true)
+  
+  //room
+  rectfill(0,48,128,96,7)
+  
+  line(0,floor,128,floor,0)
+  
+  //static objects
+
+  //sofa
+  spr(224,22,floor-15,4,2)
+  
+  //kitchen
+  spr(232,64,floor-15,2,2)
+  
+  //fridge
+  spr(228,88,floor-15,2,2)
+
+  //food bowl
+  spr(foodspr,4,floor-8,2,1)
+  
+  //litter tray
+  spr(trayspr,108,floor-8,2,1)
+  
+  //player
+  if (bitten == true
+  and t%3 == 0) 
+  or bitten == false then
+   if pflip == true then
+    spr(pspr,px,py,2,2,true,false)
+   else
+    spr(pspr,px,py,2,2)
+   end
+  end
+  
+  //cat
+  if bigcat==true then
+   if catflip == true then
+    spr(catspr,catx,caty-16,4,2,true,false)
+    if bitten == true
+    and bitetime > 24 then
+     spr(128,catx+24,caty-16)
+    end
+   else 
+    spr(catspr,catx,caty-16,4,2)
+    if bitten == true
+    and bitetime > 24 then
+     spr(128,catx,caty-16)
+    end
+   end
+  else
+   if catflip == true then
+    spr(catspr,catx,caty-8,2,2,true,false)
+   else
+    spr(catspr,catx,caty-8,2,2)
+   end
+  end
+  
+  //player in front
+  if (bitten == true
+  and t%3 == 0) 
+  or bitten == false then
+   if catsleeping==true or
+   catpooping==true or
+   cateating==true then
+    if py > 62 then
+     if pflip == true then
+      spr(pspr,px,py,2,2,true,false)
+     else
+      spr(pspr,px,py,2,2)
+     end
+    end
+   end
+  end
+  
+  if gameover == false then
+  
+  --ui
+  print("food",42,2,7)
+  line(60,3,61+(food*2),3,9)
+  line(60,4,61+(food*2),4,9)
+  line(60,5,61+(food*2),5,9)
+  rect(59,2,80,6,7)
+  rect(58,1,81,7,0)
+  
+  print("clean",38,10,7)
+  line(60,11,61+(clean*2),11,9)
+  line(60,12,61+(clean*2),12,9)
+  line(60,13,61+(clean*2),13,9)
+  rect(59,10,80,14,7)
+  rect(58,9,81,15,0)
+  
+  print("happy",84,2,7)
+  line(106,3,106+(happy*2),3,9)
+  line(106,4,106+(happy*2),4,9)
+  line(106,5,106+(happy*2),5,9)
+  rect(105,2,126,6,7)
+  rect(104,1,127,7,0)
+  
+  print("sleep",84,10,7)
+  line(106,11,106+(sleep*2),11,9)
+  line(106,12,106+(sleep*2),12,9)
+  line(106,13,106+(sleep*2),13,9)
+  rect(105,10,126,14,7)
+  rect(104,9,127,15,0)
+  
+  print("size "..size,42,18,7)
+  
+  print("day   "..day,92,18,7)
+  
+  if bigcat == true then
+   print("health",2,2,8)
+   line(3,11,3+(health*2),11,8)
+   line(3,12,3+(health*2),12,8)
+   line(3,13,3+(health*2),13,8)
+   rect(2,10,24,14,7)
+  end
+  
+  end
+  
+  print(nextaction,2,40,8)
+  
+  //dev tools
+  //print(catx - px,100,100)
+  
+  //logo
+  spr(137,2,112,7,2)
+  print("by josh duffety-wong",3,121,9)
+end
